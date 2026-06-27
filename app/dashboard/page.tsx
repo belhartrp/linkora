@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import DashboardProfileForm from "./profile-form";
 import DashboardLinksManager from "./links-manager";
+import AvatarForm from "./avatar-form";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, email, username, display_name, bio")
+    .select("id, email, username, display_name, bio, avatar_url")
     .eq("id", user.id)
     .single();
 
@@ -44,6 +45,13 @@ export default async function DashboardPage() {
           <p className="mt-2 text-zinc-400">
             Lengkapi data dasar akunmu dan tambahkan link yang ingin ditampilkan.
           </p>
+        </div>
+
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <AvatarForm
+                currentAvatarUrl={profile.avatar_url ?? null}
+                displayName={profile.display_name ?? profile.email ?? ""}
+            />
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">

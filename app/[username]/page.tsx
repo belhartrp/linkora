@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
@@ -48,8 +49,24 @@ export default async function PublicProfilePage({
       <div className="mx-auto max-w-xl">
         <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
           <div className="mb-8 text-center">
-            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-3xl font-bold uppercase text-zinc-300">
-              {profile.display_name?.charAt(0) || profile.username?.charAt(0) || "L"}
+            <div className="mx-auto mb-4">
+              {profile.avatar_url ? (
+                <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-800">
+                  <Image
+                    src={profile.avatar_url}
+                    alt={`Avatar ${profile.display_name || profile.username}`}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                  />
+                </div>
+              ) : (
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900 text-3xl font-bold uppercase text-zinc-300">
+                  {profile.display_name?.charAt(0) ||
+                    profile.username?.charAt(0) ||
+                    "L"}
+                </div>
+              )}
             </div>
 
             <h1 className="text-3xl font-bold">
