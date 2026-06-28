@@ -1,10 +1,25 @@
 "use server";
 
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
+
 export async function signup(formData: FormData) {
-  const email = formData.get("email");
-  const password = formData.get("password");
+  const email = String(formData.get("email") || "");
+  const password = String(formData.get("password") || "");
 
-  console.log("Sign up:", { email, password });
+  const supabase = await createClient();
 
-  // nanti di sini baru sambungkan ke Supabase / auth provider kamu
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error("Signup error:", error.message);
+    redirect("/auth/sign-up?error=Gagal membuat akun");
+  }
+
+  console.log("Signup success:", data.user?.id);
+
+  redirect("/dashboard");
 }
