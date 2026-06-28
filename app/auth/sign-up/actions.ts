@@ -19,7 +19,22 @@ export async function signup(formData: FormData) {
     redirect("/auth/sign-up?error=Gagal membuat akun");
   }
 
-  console.log("Signup success:", data.user?.id);
+  const user = data.user;
+
+  if (user) {
+    const username = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: user.id,
+      email,
+      username,
+    });
+
+    if (profileError) {
+      console.error("Profile insert error:", profileError.message);
+      redirect("/auth/sign-up?error=Gagal membuat profile");
+    }
+  }
 
   redirect("/dashboard");
 }
