@@ -340,10 +340,10 @@ export default function PublicBiolinkView({
         .mesh-gradient {
           background: linear-gradient(
             120deg,
-            rgba(246, 215, 220, 0.9),
-            rgba(230, 223, 248, 0.95),
-            rgba(248, 231, 215, 0.85),
-            rgba(246, 215, 220, 0.9)
+            rgba(248, 201, 214, 0.98),
+            rgba(220, 205, 255, 1),
+            rgba(255, 224, 196, 0.94),
+            rgba(248, 201, 214, 0.98)
           );
           background-size: 220% 220%;
           animation: meshShift 10s ease-in-out infinite;
@@ -370,16 +370,16 @@ export default function PublicBiolinkView({
       `}</style>
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="js-aurora-a absolute -left-16 top-10 h-[280px] w-[280px] rounded-full bg-[#f4cfd9]/65 blur-[90px]" />
-        <div className="js-aurora-b absolute right-[-40px] top-24 h-[300px] w-[300px] rounded-full bg-[#ddd4ff]/60 blur-[95px]" />
-        <div className="js-aurora-c absolute bottom-[-40px] left-[30%] h-[260px] w-[260px] rounded-full bg-[#f8e2cf]/65 blur-[85px]" />
+        <div className="js-aurora-a absolute -left-20 top-6 h-[320px] w-[320px] rounded-full bg-[#f2bfd0]/90 blur-[78px]" />
+        <div className="js-aurora-b absolute right-[-50px] top-20 h-[340px] w-[340px] rounded-full bg-[#d7c8ff]/88 blur-[82px]" />
+        <div className="js-aurora-c absolute bottom-[-50px] left-[28%] h-[300px] w-[300px] rounded-full bg-[#ffd9b8]/88 blur-[76px]" />
       </div>
 
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl items-center justify-center">
         <section className="js-page-shell relative w-full will-change-transform">
           <div className="relative rounded-[36px] p-[2px] sm:rounded-[42px]">
             <div className="js-shell-border mesh-gradient absolute inset-0 rounded-[36px] opacity-90 blur-[1px] sm:rounded-[42px]" />
-            <div className="relative overflow-hidden rounded-[36px] bg-white/78 p-4 shadow-[0_35px_90px_rgba(96,63,63,0.12)] backdrop-blur-xl sm:rounded-[42px] sm:p-6">
+            <div className="relative overflow-hidden rounded-[36px] bg-white/72 p-4 shadow-[0_35px_90px_rgba(96,63,63,0.12)] backdrop-blur-xl sm:rounded-[42px] sm:p-6">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.75),transparent_55%)]" />
 
               <div className="relative rounded-[30px] bg-[linear-gradient(180deg,rgba(255,255,255,0.97)_0%,rgba(255,248,250,0.90)_100%)] px-5 py-8 sm:rounded-[34px] sm:px-10 sm:py-12">
