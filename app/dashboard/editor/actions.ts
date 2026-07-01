@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 
 async function getAuthedUser() {
   const supabase = await createClient();
+
   const {
     data: { user },
     error,
@@ -18,22 +19,16 @@ async function getAuthedUser() {
   return { supabase, user };
 }
 
-async function revalidatePublicPath(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string
-) {
-  const { data: profile } = await supabase
+async function getUsernameByUserId(userId: string) {
+  const supabase = await createClient();
+
+  const { data } = await supabase
     .from("profiles")
     .select("username")
     .eq("id", userId)
     .maybeSingle();
 
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-
-  if (profile?.username) {
-    revalidatePath(`/${profile.username}`);
-  }
+  return data?.username ?? null;
 }
 
 export async function updateBioLinkProfile(formData: FormData) {
@@ -42,29 +37,37 @@ export async function updateBioLinkProfile(formData: FormData) {
   const displayName = String(formData.get("displayName") || "").trim();
   const bio = String(formData.get("bio") || "").trim();
 
-  const { error } = await supabase
-    .from("biolink_profiles")
-    .update({
+  const { error } = await supabase.from("biolink_profiles").upsert(
+    {
+      user_id: user.id,
       display_name: displayName || null,
       bio: bio || null,
-    })
-    .eq("user_id", user.id);
+    },
+    {
+      onConflict: "user_id",
+    }
+  );
 
   if (error) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
+    redirect("/dashboard/editor?error=Gagal menyimpan profil");
   }
 
-  await revalidatePublicPath(supabase, user.id);
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
   redirect("/dashboard/editor?saved=1");
 }
 
 export async function uploadBioLinkAvatar(formData: FormData) {
   const { supabase, user } = await getAuthedUser();
 
-  const file = formData.get("avatar");
+  const file = formData.get("avatar") as File | null;
 
-  if (!(file instanceof File) || file.size === 0) {
-    redirect("/dashboard/editor?error=File avatar wajib dipilih");
+  if (!file || file.size === 0) {
+    redirect("/dashboard/editor?error=Pilih file foto terlebih dahulu");
   }
 
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -73,11 +76,12 @@ export async function uploadBioLinkAvatar(formData: FormData) {
   const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(filePath, file, {
+      cacheControl: "3600",
       upsert: true,
     });
 
   if (uploadError) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(uploadError.message)}`);
+    redirect("/dashboard/editor?error=Gagal upload avatar");
   }
 
   const { data: publicUrlData } = supabase.storage
@@ -86,18 +90,26 @@ export async function uploadBioLinkAvatar(formData: FormData) {
 
   const avatarUrl = publicUrlData.publicUrl;
 
-  const { error: profileError } = await supabase
-    .from("biolink_profiles")
-    .update({
+  const { error: profileError } = await supabase.from("biolink_profiles").upsert(
+    {
+      user_id: user.id,
       avatar_url: avatarUrl,
-    })
-    .eq("user_id", user.id);
+    },
+    {
+      onConflict: "user_id",
+    }
+  );
 
   if (profileError) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(profileError.message)}`);
+    redirect("/dashboard/editor?error=Gagal menyimpan avatar profil");
   }
 
-  await revalidatePublicPath(supabase, user.id);
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
   redirect("/dashboard/editor?saved=1");
 }
 
@@ -111,7 +123,7 @@ export async function addBioLink(formData: FormData) {
     redirect("/dashboard/editor?error=Judul dan URL wajib diisi");
   }
 
-  const { data: lastLink } = await supabase
+  const { data: latestLink } = await supabase
     .from("biolink_links")
     .select("sort_order")
     .eq("user_id", user.id)
@@ -119,7 +131,10 @@ export async function addBioLink(formData: FormData) {
     .limit(1)
     .maybeSingle();
 
-  const nextSortOrder = (lastLink?.sort_order ?? -1) + 1;
+  const nextSortOrder =
+    typeof latestLink?.sort_order === "number"
+      ? latestLink.sort_order + 1
+      : 0;
 
   const { error } = await supabase.from("biolink_links").insert({
     user_id: user.id,
@@ -130,10 +145,15 @@ export async function addBioLink(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
+    redirect("/dashboard/editor?error=Gagal menambah link");
   }
 
-  await revalidatePublicPath(supabase, user.id);
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
   redirect("/dashboard/editor?link=added");
 }
 
@@ -160,10 +180,15 @@ export async function updateBioLink(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
+    redirect("/dashboard/editor?error=Gagal update link");
   }
 
-  await revalidatePublicPath(supabase, user.id);
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
   redirect("/dashboard/editor?link=updated");
 }
 
@@ -183,9 +208,14 @@ export async function deleteBioLink(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
+    redirect("/dashboard/editor?error=Gagal menghapus link");
   }
 
-  await revalidatePublicPath(supabase, user.id);
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
   redirect("/dashboard/editor?link=deleted");
 }
