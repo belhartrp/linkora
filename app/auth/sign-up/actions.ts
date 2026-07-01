@@ -3,42 +3,32 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
-function makeUsername(email: string) {
-  return email
-    .split("@")[0]
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "")
-    .slice(0, 20);
-}
-
-export async function signup(formData: FormData) {
-  const email = String(formData.get("email") || "");
-  const password = String(formData.get("password") || "");
-
+export async function signUp(formData: FormData) {
   const supabase = await createClient();
+
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "").trim();
+
+  if (!email || !password) {
+    redirect("/auth/error?error=Email dan password wajib diisi");
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
   });
 
-  if (error || !data.user) {
-    redirect("/auth/sign-up?error=Gagal membuat akun");
+  if (error) {
+    const message =
+      error.message.toLowerCase().includes("rate limit")
+        ? "Terlalu banyak percobaan. Coba lagi beberapa menit lagi."
+        : error.message;
+
+    redirect(`/auth/error?error=${encodeURIComponent(message)}`);
   }
 
-  const user = data.user;
-  const username = `${makeUsername(email)}_${user.id.slice(0, 6)}`;
-
-  const { error: profileError } = await supabase.from("profiles").upsert({
-    id: user.id,
-    email,
-    username,
-    active_template: "biolink",
-  });
-
-  if (profileError) {
-    console.error("Profile upsert error:", profileError.message);
-    redirect("/auth/sign-up?error=Gagal membuat profile");
+  if (!data.session) {
+    redirect("/auth/error?error=Signup berhasil tapi session tidak dibuat");
   }
 
   redirect("/dashboard");

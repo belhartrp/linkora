@@ -1,51 +1,23 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Suspense } from "react";
-
-async function ErrorContent({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const params = await searchParams;
 
   return (
-    <>
-      {params?.error ? (
-        <p className="text-sm text-muted-foreground">
-          Code error: {params.error}
+    <main className="min-h-screen bg-black px-6 py-16 text-white">
+      <div className="mx-auto max-w-xl rounded-3xl border border-red-900/50 bg-zinc-950 p-8">
+        <p className="mb-2 text-sm uppercase tracking-[0.2em] text-red-400">
+          Auth error
         </p>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          An unspecified error occurred.
+        <h1 className="text-3xl font-bold tracking-tight">
+          Verifikasi gagal
+        </h1>
+        <p className="mt-4 text-sm leading-6 text-zinc-300">
+          {params.error || "Terjadi kesalahan saat memproses autentikasi."}
         </p>
-      )}
-    </>
-  );
-}
-
-export default function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ error: string }>;
-}) {
-  return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">
-                Sorry, something went wrong.
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Suspense>
-                <ErrorContent searchParams={searchParams} />
-              </Suspense>
-            </CardContent>
-          </Card>
-        </div>
       </div>
-    </div>
+    </main>
   );
 }
