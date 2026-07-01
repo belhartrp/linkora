@@ -1,0 +1,266 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/utils/supabase/server";
+import {
+  addBioLink,
+  deleteBioLink,
+  updateBioLink,
+  updateBioLinkProfile,
+  uploadBioLinkAvatar,
+} from "./actions";
+import LinkList from "./link-list";
+
+type BioLinkProfile = {
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+};
+
+type BioLinkItem = {
+  id: string;
+  title: string;
+  url: string;
+  is_active: boolean;
+  sort_order: number | null;
+};
+
+export default async function EditorPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string; saved?: string; link?: string }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    redirect("/auth/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, username, active_template")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile || profile.active_template !== "biolink") {
+    redirect("/dashboard/templates");
+  }
+
+  const [{ data: bioProfile }, { data: links }] = await Promise.all([
+    supabase
+      .from("biolink_profiles")
+      .select("display_name, bio, avatar_url")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("biolink_links")
+      .select("id, title, url, is_active, sort_order")
+      .eq("user_id", user.id)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const publicUrl = profile.username ? `/${profile.username}` : null;
+
+  const profileData: BioLinkProfile = bioProfile ?? {
+    display_name: "",
+    bio: "",
+    avatar_url: "",
+  };
+
+  const linkItems: BioLinkItem[] = (links ?? []) as BioLinkItem[];
+
+  return (
+    <main className="min-h-screen bg-black px-6 py-12 text-white">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="mb-2 text-sm uppercase tracking-[0.2em] text-zinc-500">
+              Editor
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Edit biolink
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
+              Kelola profil utama dan daftar link yang tampil di halaman publikmu.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            {publicUrl ? (
+              <Link
+                href={publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+              >
+                Lihat publik
+              </Link>
+            ) : null}
+
+            <Link
+              href="/dashboard/publish"
+              className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+            >
+              Ke publish
+            </Link>
+          </div>
+        </div>
+
+        {params?.error ? (
+          <div className="mb-6 rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+            {params.error}
+          </div>
+        ) : null}
+
+        {params?.saved || params?.link ? (
+          <div className="mb-6 rounded-2xl border border-emerald-900/60 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-300">
+            Perubahan berhasil disimpan.
+          </div>
+        ) : null}
+
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+            <h2 className="text-xl font-semibold">Profil biolink</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Data ini dipakai sebagai identitas utama halaman publik.
+            </p>
+
+            <form action={updateBioLinkProfile} className="mt-6 space-y-5">
+              <div>
+                <label
+                  className="mb-2 block text-sm text-zinc-300"
+                  htmlFor="displayName"
+                >
+                  Display name
+                </label>
+                <input
+                  id="displayName"
+                  name="displayName"
+                  defaultValue={profileData.display_name ?? ""}
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-zinc-600"
+                />
+              </div>
+
+              <div>
+                <label
+                  className="mb-2 block text-sm text-zinc-300"
+                  htmlFor="bio"
+                >
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  rows={4}
+                  defaultValue={profileData.bio ?? ""}
+                  className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-zinc-600"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+              >
+                Simpan profil
+              </button>
+            </form>
+
+            <div className="mt-8 space-y-3">
+              <label className="block text-sm text-zinc-300">Foto profil</label>
+
+              {profileData.avatar_url ? (
+                <div className="flex items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-4">
+                  <div className="h-14 w-14 overflow-hidden rounded-full border border-zinc-800">
+                    <img
+                      src={profileData.avatar_url}
+                      alt="Avatar profile"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <p className="text-sm text-zinc-400">
+                    Upload foto baru untuk mengganti avatar saat ini.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-zinc-800 px-4 py-4 text-sm text-zinc-500">
+                  Belum ada foto profil.
+                </div>
+              )}
+
+              <form
+                action={uploadBioLinkAvatar}
+                className="flex flex-col gap-3 sm:flex-row sm:items-center"
+              >
+                <input
+                  type="file"
+                  name="avatar"
+                  accept="image/*"
+                  className="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-xl file:border-0 file:bg-white file:px-4 file:py-2 file:font-semibold file:text-black"
+                />
+                <button
+                  type="submit"
+                  className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+                >
+                  Upload foto baru
+                </button>
+              </form>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Daftar link</h2>
+                <p className="mt-2 text-sm text-zinc-400">
+                  Tambah, ubah, aktif/nonaktif, atau hapus link yang tampil di publik.
+                </p>
+              </div>
+
+              <div className="rounded-full border border-zinc-800 px-3 py-1 text-xs text-zinc-400">
+                {linkItems.length} link
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <form
+                action={addBioLink}
+                className="grid gap-3 md:grid-cols-[1fr_1.2fr_auto]"
+              >
+                <input
+                  name="title"
+                  placeholder="Judul link"
+                  className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-zinc-600"
+                />
+                <input
+                  name="url"
+                  placeholder="https://..."
+                  className="rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-zinc-600"
+                />
+                <button
+                  type="submit"
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                >
+                  Tambah
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-6">
+              <LinkList
+                links={linkItems}
+                onUpdate={updateBioLink}
+                onDelete={deleteBioLink}
+              />
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
