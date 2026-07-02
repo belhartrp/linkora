@@ -31,6 +31,13 @@ async function getUsernameByUserId(userId: string) {
   return data?.username ?? null;
 }
 
+function normalizeUrl(value: string) {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return `https://${raw}`;
+}
+
 export async function updateBioLinkProfile(formData: FormData) {
   const { supabase, user } = await getAuthedUser();
 
@@ -70,14 +77,30 @@ export async function uploadBioLinkAvatar(formData: FormData) {
     redirect("/dashboard/editor?error=Pilih file foto terlebih dahulu");
   }
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const filePath = `${user.id}/avatar-${Date.now()}.${ext}`;
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    redirect("/dashboard/editor?error=Format file harus JPG, PNG, atau WEBP");
+  }
+
+  if (file.size > 6 * 1024 * 1024) {
+    redirect("/dashboard/editor?error=Ukuran file maksimal 6MB");
+  }
+
+  const ext =
+    file.type === "image/png"
+      ? "png"
+      : file.type === "image/webp"
+      ? "webp"
+      : "jpg";
+
+  const filePath = `${user.id}/avatar.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(filePath, file, {
       cacheControl: "3600",
       upsert: true,
+      contentType: file.type,
     });
 
   if (uploadError) {
@@ -88,7 +111,7 @@ export async function uploadBioLinkAvatar(formData: FormData) {
     .from("avatars")
     .getPublicUrl(filePath);
 
-  const avatarUrl = publicUrlData.publicUrl;
+  const avatarUrl = `${publicUrlData.publicUrl}?v=${Date.now()}`;
 
   const { error: profileError } = await supabase.from("biolink_profiles").upsert(
     {
@@ -117,7 +140,7 @@ export async function addBioLink(formData: FormData) {
   const { supabase, user } = await getAuthedUser();
 
   const title = String(formData.get("title") || "").trim();
-  const url = String(formData.get("url") || "").trim();
+  const url = normalizeUrl(String(formData.get("url") || ""));
 
   if (!title || !url) {
     redirect("/dashboard/editor?error=Judul dan URL wajib diisi");
@@ -132,9 +155,7 @@ export async function addBioLink(formData: FormData) {
     .maybeSingle();
 
   const nextSortOrder =
-    typeof latestLink?.sort_order === "number"
-      ? latestLink.sort_order + 1
-      : 0;
+    typeof latestLink?.sort_order === "number" ? latestLink.sort_order + 1 : 0;
 
   const { error } = await supabase.from("biolink_links").insert({
     user_id: user.id,
@@ -162,7 +183,7 @@ export async function updateBioLink(formData: FormData) {
 
   const id = String(formData.get("id") || "");
   const title = String(formData.get("title") || "").trim();
-  const url = String(formData.get("url") || "").trim();
+  const url = normalizeUrl(String(formData.get("url") || ""));
   const isActive = String(formData.get("is_active") || "off") === "on";
 
   if (!id || !title || !url) {
@@ -218,4 +239,92 @@ export async function deleteBioLink(formData: FormData) {
   if (username) revalidatePath(`/${username}`);
 
   redirect("/dashboard/editor?link=deleted");
+}
+
+export async function moveBioLinkUp(formData: FormData) {
+  const { supabase, user } = await getAuthedUser();
+
+  const id = String(formData.get("id") || "");
+  const currentSort = Number(formData.get("sort_order"));
+
+  if (!id || Number.isNaN(currentSort)) {
+    redirect("/dashboard/editor?error=Data urutan link tidak valid");
+  }
+
+  const { data: prevLink } = await supabase
+    .from("biolink_links")
+    .select("id, sort_order")
+    .eq("user_id", user.id)
+    .lt("sort_order", currentSort)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!prevLink) {
+    redirect("/dashboard/editor");
+  }
+
+  await supabase
+    .from("biolink_links")
+    .update({ sort_order: prevLink.sort_order })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  await supabase
+    .from("biolink_links")
+    .update({ sort_order: currentSort })
+    .eq("id", prevLink.id)
+    .eq("user_id", user.id);
+
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
+  redirect("/dashboard/editor?saved=1");
+}
+
+export async function moveBioLinkDown(formData: FormData) {
+  const { supabase, user } = await getAuthedUser();
+
+  const id = String(formData.get("id") || "");
+  const currentSort = Number(formData.get("sort_order"));
+
+  if (!id || Number.isNaN(currentSort)) {
+    redirect("/dashboard/editor?error=Data urutan link tidak valid");
+  }
+
+  const { data: nextLink } = await supabase
+    .from("biolink_links")
+    .select("id, sort_order")
+    .eq("user_id", user.id)
+    .gt("sort_order", currentSort)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!nextLink) {
+    redirect("/dashboard/editor");
+  }
+
+  await supabase
+    .from("biolink_links")
+    .update({ sort_order: nextLink.sort_order })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  await supabase
+    .from("biolink_links")
+    .update({ sort_order: currentSort })
+    .eq("id", nextLink.id)
+    .eq("user_id", user.id);
+
+  const username = await getUsernameByUserId(user.id);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+
+  redirect("/dashboard/editor?saved=1");
 }

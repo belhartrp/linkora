@@ -14,10 +14,14 @@ export default function LinkList({
   links,
   onUpdate,
   onDelete,
+  onMoveUp,
+  onMoveDown,
 }: {
   links: LinkItem[];
   onUpdate: (formData: FormData) => Promise<void>;
   onDelete: (formData: FormData) => Promise<void>;
+  onMoveUp: (formData: FormData) => Promise<void>;
+  onMoveDown: (formData: FormData) => Promise<void>;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -31,8 +35,10 @@ export default function LinkList({
 
   return (
     <div className="space-y-4">
-      {links.map((link) => {
+      {links.map((link, index) => {
         const isEditing = editingId === link.id;
+        const isFirst = index === 0;
+        const isLast = index === links.length - 1;
 
         return (
           <div
@@ -90,7 +96,33 @@ export default function LinkList({
                 </div>
               </form>
 
-              <div className="flex justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex gap-2">
+                  <form action={onMoveUp}>
+                    <input type="hidden" name="id" value={link.id} />
+                    <input type="hidden" name="sort_order" value={link.sort_order ?? 0} />
+                    <button
+                      type="submit"
+                      disabled={isFirst}
+                      className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Naik
+                    </button>
+                  </form>
+
+                  <form action={onMoveDown}>
+                    <input type="hidden" name="id" value={link.id} />
+                    <input type="hidden" name="sort_order" value={link.sort_order ?? 0} />
+                    <button
+                      type="submit"
+                      disabled={isLast}
+                      className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Turun
+                    </button>
+                  </form>
+                </div>
+
                 <form action={onDelete}>
                   <input type="hidden" name="id" value={link.id} />
                   <button

@@ -4,10 +4,12 @@ import { createClient } from "@/utils/supabase/server";
 import {
   addBioLink,
   deleteBioLink,
+  moveBioLinkDown,
+  moveBioLinkUp,
   updateBioLink,
   updateBioLinkProfile,
-  uploadBioLinkAvatar,
 } from "./actions";
+import AvatarUploader from "./avatar-uploader";
 import LinkList from "./link-list";
 
 type BioLinkProfile = {
@@ -173,43 +175,7 @@ export default async function EditorPage({
 
             <div className="mt-8 space-y-3">
               <label className="block text-sm text-zinc-300">Foto profil</label>
-
-              {profileData.avatar_url ? (
-                <div className="flex items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-4">
-                  <div className="h-14 w-14 overflow-hidden rounded-full border border-zinc-800">
-                    <img
-                      src={profileData.avatar_url}
-                      alt="Avatar profile"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <p className="text-sm text-zinc-400">
-                    Upload foto baru untuk mengganti avatar saat ini.
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-zinc-800 px-4 py-4 text-sm text-zinc-500">
-                  Belum ada foto profil.
-                </div>
-              )}
-
-              <form
-                action={uploadBioLinkAvatar}
-                className="flex flex-col gap-3 sm:flex-row sm:items-center"
-              >
-                <input
-                  type="file"
-                  name="avatar"
-                  accept="image/*"
-                  className="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-xl file:border-0 file:bg-white file:px-4 file:py-2 file:font-semibold file:text-black"
-                />
-                <button
-                  type="submit"
-                  className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-                >
-                  Upload foto baru
-                </button>
-              </form>
+              <AvatarUploader currentAvatarUrl={profileData.avatar_url} />
             </div>
           </section>
 
@@ -218,7 +184,7 @@ export default async function EditorPage({
               <div>
                 <h2 className="text-xl font-semibold">Daftar link</h2>
                 <p className="mt-2 text-sm text-zinc-400">
-                  Tambah, ubah, aktif/nonaktif, atau hapus link yang tampil di publik.
+                  Tambah, ubah, aktif/nonaktif, hapus, dan atur urutan link yang tampil di publik.
                 </p>
               </div>
 
@@ -256,6 +222,8 @@ export default async function EditorPage({
                 links={linkItems}
                 onUpdate={updateBioLink}
                 onDelete={deleteBioLink}
+                onMoveUp={moveBioLinkUp}
+                onMoveDown={moveBioLinkDown}
               />
             </div>
           </section>
