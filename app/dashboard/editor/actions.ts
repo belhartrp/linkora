@@ -38,6 +38,72 @@ function normalizeUrl(value: string) {
   return `https://${raw}`;
 }
 
+async function revalidateEditorPaths(userId: string) {
+  const username = await getUsernameByUserId(userId);
+
+  revalidatePath("/dashboard/editor");
+  revalidatePath("/dashboard/publish");
+  if (username) revalidatePath(`/${username}`);
+}
+
+async function getOrderedLinks(userId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("biolink_links")
+    .select("id, user_id, sort_order, created_at")
+    .eq("user_id", userId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    throw new Error(`Gagal mengambil urutan link: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+async function rewriteSortOrders(
+  userId: string,
+  links: Array<{
+    id: string;
+    user_id: string;
+    sort_order: number | null;
+    created_at?: string | null;
+  }>
+) {
+  const supabase = await createClient();
+
+  for (let index = 0; index < links.length; index++) {
+    const link = links[index];
+    const tempSortOrder = 1000 + index;
+
+    const { error } = await supabase
+      .from("biolink_links")
+      .update({ sort_order: tempSortOrder })
+      .eq("id", link.id)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error(`Gagal menyimpan urutan link (fase 1): ${error.message}`);
+    }
+  }
+
+  for (let index = 0; index < links.length; index++) {
+    const link = links[index];
+
+    const { error } = await supabase
+      .from("biolink_links")
+      .update({ sort_order: index })
+      .eq("id", link.id)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error(`Gagal menyimpan urutan link (fase 2): ${error.message}`);
+    }
+  }
+}
+
 export async function updateBioLinkProfile(formData: FormData) {
   const { supabase, user } = await getAuthedUser();
 
@@ -56,15 +122,10 @@ export async function updateBioLinkProfile(formData: FormData) {
   );
 
   if (error) {
-    redirect("/dashboard/editor?error=Gagal menyimpan profil");
+    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
   }
 
-  const username = await getUsernameByUserId(user.id);
-
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?saved=1");
 }
 
@@ -104,7 +165,9 @@ export async function uploadBioLinkAvatar(formData: FormData) {
     });
 
   if (uploadError) {
-    redirect("/dashboard/editor?error=Gagal upload avatar");
+    redirect(
+      `/dashboard/editor?error=${encodeURIComponent(uploadError.message)}`
+    );
   }
 
   const { data: publicUrlData } = supabase.storage
@@ -124,15 +187,12 @@ export async function uploadBioLinkAvatar(formData: FormData) {
   );
 
   if (profileError) {
-    redirect("/dashboard/editor?error=Gagal menyimpan avatar profil");
+    redirect(
+      `/dashboard/editor?error=${encodeURIComponent(profileError.message)}`
+    );
   }
 
-  const username = await getUsernameByUserId(user.id);
-
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?saved=1");
 }
 
@@ -146,35 +206,21 @@ export async function addBioLink(formData: FormData) {
     redirect("/dashboard/editor?error=Judul dan URL wajib diisi");
   }
 
-  const { data: latestLink } = await supabase
-    .from("biolink_links")
-    .select("sort_order")
-    .eq("user_id", user.id)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const nextSortOrder =
-    typeof latestLink?.sort_order === "number" ? latestLink.sort_order + 1 : 0;
+  const links = await getOrderedLinks(user.id);
 
   const { error } = await supabase.from("biolink_links").insert({
     user_id: user.id,
     title,
     url,
     is_active: true,
-    sort_order: nextSortOrder,
+    sort_order: links.length,
   });
 
   if (error) {
-    redirect("/dashboard/editor?error=Gagal menambah link");
+    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
   }
 
-  const username = await getUsernameByUserId(user.id);
-
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?link=added");
 }
 
@@ -201,15 +247,10 @@ export async function updateBioLink(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect("/dashboard/editor?error=Gagal update link");
+    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
   }
 
-  const username = await getUsernameByUserId(user.id);
-
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?link=updated");
 }
 
@@ -229,102 +270,76 @@ export async function deleteBioLink(formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    redirect("/dashboard/editor?error=Gagal menghapus link");
+    redirect(`/dashboard/editor?error=${encodeURIComponent(error.message)}`);
   }
 
-  const username = await getUsernameByUserId(user.id);
+  const remainingLinks = await getOrderedLinks(user.id);
+  await rewriteSortOrders(user.id, remainingLinks);
 
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?link=deleted");
 }
 
 export async function moveBioLinkUp(formData: FormData) {
-  const { supabase, user } = await getAuthedUser();
+  const { user } = await getAuthedUser();
 
   const id = String(formData.get("id") || "");
-  const currentSort = Number(formData.get("sort_order"));
 
-  if (!id || Number.isNaN(currentSort)) {
-    redirect("/dashboard/editor?error=Data urutan link tidak valid");
+  if (!id) {
+    redirect("/dashboard/editor?error=ID link tidak valid");
   }
 
-  const { data: prevLink } = await supabase
-    .from("biolink_links")
-    .select("id, sort_order")
-    .eq("user_id", user.id)
-    .lt("sort_order", currentSort)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const links = await getOrderedLinks(user.id);
+  const currentIndex = links.findIndex((link) => link.id === id);
 
-  if (!prevLink) {
-    redirect("/dashboard/editor");
+  if (currentIndex === -1) {
+    redirect("/dashboard/editor?error=Link tidak ditemukan");
   }
 
-  await supabase
-    .from("biolink_links")
-    .update({ sort_order: prevLink.sort_order })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  if (currentIndex === 0) {
+    redirect("/dashboard/editor?saved=1");
+  }
 
-  await supabase
-    .from("biolink_links")
-    .update({ sort_order: currentSort })
-    .eq("id", prevLink.id)
-    .eq("user_id", user.id);
+  const reordered = [...links];
+  [reordered[currentIndex - 1], reordered[currentIndex]] = [
+    reordered[currentIndex],
+    reordered[currentIndex - 1],
+  ];
 
-  const username = await getUsernameByUserId(user.id);
+  await rewriteSortOrders(user.id, reordered);
 
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?saved=1");
 }
 
 export async function moveBioLinkDown(formData: FormData) {
-  const { supabase, user } = await getAuthedUser();
+  const { user } = await getAuthedUser();
 
   const id = String(formData.get("id") || "");
-  const currentSort = Number(formData.get("sort_order"));
 
-  if (!id || Number.isNaN(currentSort)) {
-    redirect("/dashboard/editor?error=Data urutan link tidak valid");
+  if (!id) {
+    redirect("/dashboard/editor?error=ID link tidak valid");
   }
 
-  const { data: nextLink } = await supabase
-    .from("biolink_links")
-    .select("id, sort_order")
-    .eq("user_id", user.id)
-    .gt("sort_order", currentSort)
-    .order("sort_order", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const links = await getOrderedLinks(user.id);
+  const currentIndex = links.findIndex((link) => link.id === id);
 
-  if (!nextLink) {
-    redirect("/dashboard/editor");
+  if (currentIndex === -1) {
+    redirect("/dashboard/editor?error=Link tidak ditemukan");
   }
 
-  await supabase
-    .from("biolink_links")
-    .update({ sort_order: nextLink.sort_order })
-    .eq("id", id)
-    .eq("user_id", user.id);
+  if (currentIndex >= links.length - 1) {
+    redirect("/dashboard/editor?saved=1");
+  }
 
-  await supabase
-    .from("biolink_links")
-    .update({ sort_order: currentSort })
-    .eq("id", nextLink.id)
-    .eq("user_id", user.id);
+  const reordered = [...links];
+  [reordered[currentIndex], reordered[currentIndex + 1]] = [
+    reordered[currentIndex + 1],
+    reordered[currentIndex],
+  ];
 
-  const username = await getUsernameByUserId(user.id);
+  await rewriteSortOrders(user.id, reordered);
 
-  revalidatePath("/dashboard/editor");
-  revalidatePath("/dashboard/publish");
-  if (username) revalidatePath(`/${username}`);
-
+  await revalidateEditorPaths(user.id);
   redirect("/dashboard/editor?saved=1");
 }

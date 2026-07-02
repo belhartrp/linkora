@@ -8,12 +8,36 @@ type PublicProfilePageProps = {
   }>;
 };
 
-export async function generateMetadata({ params }: PublicProfilePageProps) {
+export async function generateMetadata({
+  params,
+}: PublicProfilePageProps) {
   const { username } = await params;
+  const supabase = await createClient();
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, username, active_template")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (!profile || profile.active_template !== "biolink") {
+    return {
+      title: "Linkora",
+      description: "Halaman publik Linkora",
+    };
+  }
+
+  const { data: biolinkProfile } = await supabase
+    .from("biolink_profiles")
+    .select("display_name, bio")
+    .eq("user_id", profile.id)
+    .maybeSingle();
 
   return {
-    title: `${username} | Linkora`,
-    description: `Halaman publik ${username} di Linkora`,
+    title: `${biolinkProfile?.display_name?.trim() || profile.username} | Linkora`,
+    description:
+      biolinkProfile?.bio?.trim() ||
+      `Halaman publik ${profile.username} di Linkora`,
   };
 }
 
@@ -34,7 +58,7 @@ export default async function PublicProfilePage({
   }
 
   if (profile.active_template !== "biolink") {
-    return notFound();
+    notFound();
   }
 
   const [{ data: biolinkProfile }, { data: links }] = await Promise.all([
@@ -48,7 +72,8 @@ export default async function PublicProfilePage({
       .select("id, title, url, sort_order, is_active")
       .eq("user_id", profile.id)
       .eq("is_active", true)
-      .order("sort_order", { ascending: true }),
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
 
   return (

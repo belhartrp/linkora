@@ -1,52 +1,42 @@
-// app/page.tsx
-// Linkora Landing Page
-// Stack: Next.js + Tailwind CSS + GSAP + AOS
-// Created by Belhart Rajesky Pasaribu
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
-/* ─── AOS + GSAP loaded via CDN in layout.tsx / _document.tsx ───
-   But for client component we'll do it inline via useEffect        */
+const PUBLIC_PREVIEW_URL = "https://linkora-eight-kappa.vercel.app/belhartrp";
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
-  { label: "Templates", href: "#templates" },
+  { label: "Template", href: "#templates" },
   { label: "FAQ", href: "#faq" },
 ];
 
 const FEATURES = [
   {
-    title: "Choose a Template",
-    desc: "Browse modern templates designed for developers, designers, students, and creators.",
-    cta: "Browse Templates",
-    ctaHref: "#templates",
+    title: "Pilih template yang tersedia",
+    desc: "Mulai dari template yang sudah tersedia untuk halaman publikmu. Saat ini Linkora berfokus pada Bio Link, sambil menyiapkan fondasi untuk template lain ke depannya.",
     img: "right",
-    icon: "🖼️",
+    icon: "🧩",
     illustrationKey: "template",
   },
   {
-    title: "Customize Your Portfolio",
-    desc: "Personalize colors, fonts, sections, and layouts to match your own unique style.",
-    cta: null,
+    title: "Atur identitas halamanmu",
+    desc: "Sesuaikan username, display name, avatar, bio, dan tampilan dasar agar halaman publikmu terasa personal, rapi, dan konsisten.",
     img: "left",
     icon: "🎨",
-    illustrationKey: "customize",
+    illustrationKey: "profile",
   },
   {
-    title: "Add Your Content",
-    desc: "Showcase your projects, experience, skills, and social profiles with an intuitive editor.",
-    cta: null,
+    title: "Tambahkan link pentingmu",
+    desc: "Masukkan link yang ingin kamu tampilkan, atur urutannya, lalu tampilkan konten pentingmu dalam satu halaman publik yang lebih ringkas.",
     img: "right",
-    icon: "✏️",
-    illustrationKey: "content",
+    icon: "🔗",
+    illustrationKey: "links",
   },
   {
-    title: "Publish & Share",
-    desc: "Deploy your portfolio instantly and share your unique link with employers, clients, or anyone you want.",
-    cta: null,
+    title: "Publish lalu bagikan",
+    desc: "Setelah siap, publish halamanmu dan bagikan satu URL publik yang mudah diakses dari mana saja.",
     img: "left",
     icon: "🚀",
     illustrationKey: "publish",
@@ -55,178 +45,268 @@ const FEATURES = [
 
 const FAQS = [
   {
-    q: "Apakah Linkora gratis digunakan?",
-    a: "Ya! Linkora menyediakan paket gratis yang sudah cukup untuk membuat portfolio profesional. Untuk fitur lanjutan seperti custom domain, kamu bisa upgrade ke paket premium kapan saja.",
+    q: "Apa yang bisa saya buat di Linkora sekarang?",
+    a: "Saat ini Linkora berfokus pada template Bio Link untuk halaman publik yang ringkas dan mudah dibagikan.",
   },
   {
-    q: "Apakah saya perlu keahlian coding?",
-    a: "Tidak sama sekali. Linkora dirancang untuk siapa saja — kamu cukup pilih template, isi konten, dan publish. Semua proses teknis sudah kami tangani.",
+    q: "Apakah saya perlu coding untuk menggunakannya?",
+    a: "Tidak. Kamu cukup mengatur profil, menambahkan link, lalu membagikan URL publikmu dari dashboard.",
   },
   {
-    q: "Bisakah saya menggunakan domain sendiri?",
-    a: "Tentu! Dengan paket premium, kamu bisa menghubungkan custom domain milikmu ke portfolio Linkora. Prosesnya mudah dan terdokumentasi dengan baik.",
+    q: "Apakah saya bisa punya URL publik sendiri?",
+    a: "Bisa. Username akunmu digunakan sebagai bagian dari URL publik, misalnya /username.",
   },
   {
-    q: "Seberapa cepat portfolio saya bisa online?",
-    a: "Kurang dari 5 menit. Pilih template, isi informasimu, klik publish — dan portfolio kamu langsung bisa diakses siapa saja.",
+    q: "Apa saja yang bisa saya ubah dari halaman publik saya?",
+    a: "Kamu bisa mengubah identitas dasar seperti username, display name, avatar, bio, serta daftar link yang tampil pada template aktif.",
   },
   {
-    q: "Apakah portfolio saya mobile-friendly?",
-    a: "Semua template Linkora dirancang responsive dan telah dioptimalkan untuk tampil sempurna di desktop, tablet, maupun smartphone.",
-  },
-  {
-    q: "Bagaimana jika saya ingin mengganti template?",
-    a: "Kamu bisa ganti template kapan saja tanpa kehilangan konten. Cukup pilih template baru dan kontenmu akan otomatis menyesuaikan.",
+    q: "Apakah template yang tersedia sudah banyak?",
+    a: "Untuk saat ini, template yang tersedia dan aktif adalah Bio Link. Fokusnya adalah membuat pengalaman edit, publish, dan share tetap rapi dan jelas.",
   },
 ];
 
 const TEMPLATES = [
-  { name: "Minimal Dark", tag: "Developer", color: "from-zinc-900 to-zinc-700" },
-  { name: "Creative Studio", tag: "Designer", color: "from-violet-900 to-purple-700" },
-  { name: "Clean Resume", tag: "Student", color: "from-blue-900 to-blue-700" },
-  { name: "Bold Creator", tag: "Creator", color: "from-rose-900 to-pink-700" },
-  { name: "Glass Morph", tag: "All Roles", color: "from-teal-900 to-cyan-700" },
-  { name: "Modern Pro", tag: "Professional", color: "from-amber-900 to-orange-700" },
+  {
+    name: "Bio Link",
+    tag: "Active Template",
+    color: "from-[#f4e5e7] via-[#f7efe6] to-[#ecd7df]",
+    previewUrl: PUBLIC_PREVIEW_URL,
+    image: "/images/template-biolink.png",
+    sections: ["Avatar", "Name", "Bio", "Links"],
+  },
 ];
 
+declare global {
+  interface Window {
+    gsap?: any;
+    AOS?: any;
+  }
+}
+
 export default function LandingPage() {
-  const heroRef = useRef<HTMLDivElement>(null);
   const heroTitleRef = useRef<HTMLHeadingElement>(null);
   const heroCTARef = useRef<HTMLDivElement>(null);
+  const heroIllustrationRef = useRef<HTMLDivElement>(null);
+
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    document.documentElement.style.scrollBehavior = "smooth";
+
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      document.documentElement.style.scrollBehavior = "";
+    };
   }, []);
 
   useEffect(() => {
-    // Dynamically load GSAP + AOS
-    const loadScripts = async () => {
-      // GSAP
-      if (!(window as any).gsap) {
-        await new Promise<void>((resolve) => {
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js";
-          s.onload = () => resolve();
-          document.head.appendChild(s);
-        });
-      }
-      // AOS
-      if (!(window as any).AOS) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/aos@2.3.4/dist/aos.css";
-        document.head.appendChild(link);
+    let isMounted = true;
+    let gsapContext: any = null;
 
-        await new Promise<void>((resolve) => {
-          const s = document.createElement("script");
-          s.src = "https://unpkg.com/aos@2.3.4/dist/aos.js";
-          s.onload = () => resolve();
-          document.head.appendChild(s);
-        });
-      }
+    const loadScript = (src: string) =>
+      new Promise<void>((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+          resolve();
+          return;
+        }
 
-      const gsap = (window as any).gsap;
-      const AOS = (window as any).AOS;
-
-      // Init AOS
-      AOS.init({
-        duration: 700,
-        easing: "ease-out-cubic",
-        once: true,
-        offset: 60,
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
       });
 
-      // GSAP Hero animation
-      if (heroTitleRef.current && heroCTARef.current) {
-        gsap.from(heroTitleRef.current.children, {
-          y: 60,
-          opacity: 0,
-          duration: 0.9,
-          stagger: 0.15,
-          ease: "power3.out",
-          delay: 0.2,
-        });
-        gsap.from(heroCTARef.current, {
-          y: 30,
-          opacity: 0,
-          duration: 0.7,
-          ease: "power3.out",
-          delay: 0.8,
-        });
-      }
+    const loadStylesheet = (href: string) =>
+      new Promise<void>((resolve) => {
+        const existing = document.querySelector(`link[href="${href}"]`);
+        if (existing) {
+          resolve();
+          return;
+        }
 
-      // GSAP floating hero illustration
-      const heroImg = document.getElementById("hero-illustration");
-      if (heroImg) {
-        gsap.to(heroImg, {
-          y: -16,
-          duration: 2.8,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        link.onload = () => resolve();
+        document.head.appendChild(link);
+      });
+
+    const initAnimations = async () => {
+      try {
+        if (!window.gsap) {
+          await loadScript(
+            "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"
+          );
+        }
+
+        if (!window.AOS) {
+          await loadStylesheet("https://unpkg.com/aos@2.3.4/dist/aos.css");
+          await loadScript("https://unpkg.com/aos@2.3.4/dist/aos.js");
+        }
+
+        if (!isMounted || !window.gsap || !window.AOS) return;
+
+        const { gsap, AOS } = window;
+
+        AOS.init({
+          duration: 700,
+          easing: "ease-out-cubic",
+          once: false,
+          mirror: true,
+          offset: 60,
         });
-        gsap.from(heroImg, {
-          x: 60,
-          opacity: 0,
-          duration: 1,
-          ease: "power3.out",
-          delay: 0.4,
+
+        setTimeout(() => {
+          AOS.refreshHard?.();
+        }, 150);
+
+        gsapContext = gsap.context(() => {
+          if (heroTitleRef.current) {
+            gsap.from(heroTitleRef.current.children, {
+              y: 60,
+              opacity: 0,
+              duration: 0.9,
+              stagger: 0.15,
+              ease: "power3.out",
+              delay: 0.2,
+            });
+          }
+
+          if (heroCTARef.current) {
+            gsap.from(heroCTARef.current, {
+              y: 30,
+              opacity: 0,
+              duration: 0.7,
+              ease: "power3.out",
+              delay: 0.8,
+            });
+          }
+
+          if (heroIllustrationRef.current) {
+            gsap.to(heroIllustrationRef.current, {
+              y: -16,
+              duration: 2.8,
+              ease: "sine.inOut",
+              yoyo: true,
+              repeat: -1,
+            });
+
+            gsap.from(heroIllustrationRef.current, {
+              x: 60,
+              opacity: 0,
+              duration: 1,
+              ease: "power3.out",
+              delay: 0.4,
+            });
+          }
         });
+      } catch (error) {
+        console.error("Animation init failed:", error);
       }
     };
 
-    loadScripts();
+    initAnimations();
+
+    return () => {
+      isMounted = false;
+      gsapContext?.revert?.();
+    };
   }, []);
 
+  const handleNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string
+  ) => {
+    if (!href.startsWith("#")) return;
+    e.preventDefault();
+
+    const target = document.querySelector(href);
+    if (!target) return;
+
+    const headerOffset = 96;
+    const top =
+      target.getBoundingClientRect().top + window.scrollY - headerOffset;
+
+    window.scrollTo({
+      top,
+      behavior: "smooth",
+    });
+
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden">
-      {/* ─── NAVBAR ─── */}
+    <div className="min-h-screen overflow-x-hidden bg-white font-sans text-gray-900">
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100" : "bg-transparent"
+        className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur-md"
+            : "bg-transparent"
         }`}
       >
-        <nav className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Linkora logo">
+        <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link href="/" className="group flex items-center gap-2">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
+              fill="none"
+              aria-label="Linkora logo"
+            >
               <rect width="28" height="28" rx="7" fill="#7C3AED" />
-              <path d="M8 14h4m4 0h4M14 8v4m0 4v4" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+              <path
+                d="M8 14h4m4 0h4M14 8v4m0 4v4"
+                stroke="white"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
             </svg>
-            <span className="text-xl font-bold tracking-tight text-gray-900">linkora</span>
+            <span className="text-xl font-bold tracking-tight text-gray-900">
+              linkora
+            </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden items-center gap-8 md:flex">
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.label}
                 href={l.href}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                onClick={(e) => handleNavClick(e, l.href)}
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
               >
                 {l.label}
               </Link>
             ))}
             <Link
               href="/auth/login"
-              className="text-sm font-semibold px-5 py-2 rounded-full border-2 border-violet-600 text-violet-600 hover:bg-violet-600 hover:text-white transition-all duration-200"
+              className="rounded-full border-2 border-violet-600 px-5 py-2 text-sm font-semibold text-violet-600 transition-all duration-200 hover:bg-violet-600 hover:text-white"
             >
               Login
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
           <button
-            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               {mobileMenuOpen ? (
                 <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
               ) : (
@@ -236,26 +316,25 @@ export default function LandingPage() {
           </button>
         </nav>
 
-        {/* Mobile menu */}
         <div
-          className={`md:hidden transition-all duration-300 overflow-hidden ${
+          className={`overflow-hidden border-b border-gray-100 bg-white transition-all duration-300 md:hidden ${
             mobileMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"
-          } bg-white border-b border-gray-100`}
+          }`}
         >
-          <div className="px-6 py-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-4 px-6 py-4">
             {NAV_LINKS.map((l) => (
               <Link
                 key={l.label}
                 href={l.href}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 py-1"
-                onClick={() => setMobileMenuOpen(false)}
+                onClick={(e) => handleNavClick(e, l.href)}
+                className="py-1 text-sm font-medium text-gray-600 hover:text-gray-900"
               >
                 {l.label}
               </Link>
             ))}
             <Link
               href="/auth/login"
-              className="text-sm font-semibold px-5 py-2.5 rounded-full border-2 border-violet-600 text-violet-600 text-center hover:bg-violet-600 hover:text-white transition-all duration-200"
+              className="rounded-full border-2 border-violet-600 px-5 py-2.5 text-center text-sm font-semibold text-violet-600 transition-all duration-200 hover:bg-violet-600 hover:text-white"
               onClick={() => setMobileMenuOpen(false)}
             >
               Login
@@ -264,145 +343,166 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* ─── HERO ─── */}
-      <section
-        ref={heroRef}
-        className="min-h-screen flex items-center pt-20 pb-16 px-6 max-w-6xl mx-auto"
-      >
-        <div className="grid md:grid-cols-2 gap-12 items-center w-full">
-          {/* Left: Text */}
+      <section className="mx-auto flex min-h-screen max-w-6xl items-center px-6 pb-16 pt-20">
+        <div className="grid w-full items-center gap-12 md:grid-cols-2">
           <div>
             <h1
               ref={heroTitleRef}
-              className="text-5xl sm:text-6xl font-extrabold leading-tight text-gray-900 mb-8"
+              className="mb-8 text-5xl font-extrabold leading-tight text-gray-900 sm:text-6xl"
               style={{ overflow: "hidden" }}
             >
-              <span className="block">Choose a Template.</span>
-              <span className="block">Add Your Content.</span>
-              <span className="block text-violet-600">Publish Your Portfolio</span>
-              <span className="block text-violet-600">Instantly</span>
+              <span className="block">Satu halaman publik</span>
+              <span className="block">untuk semua</span>
+              <span className="block text-violet-600">link pentingmu</span>
+              <span className="block text-violet-600">yang rapi dan siap dibagikan.</span>
             </h1>
-            <div ref={heroCTARef} className="flex flex-col sm:flex-row gap-4 mt-2">
+
+            <p className="max-w-xl text-lg leading-relaxed text-gray-500">
+              Linkora membantumu membuat halaman Bio Link yang lebih rapi:
+              mulai dari template yang tersedia, atur identitasmu, tambahkan
+              link penting, lalu bagikan lewat satu URL publik.
+            </p>
+
+            <div
+              ref={heroCTARef}
+              className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap"
+            >
               <Link
                 href="/auth/sign-up"
-                className="inline-flex items-center justify-center px-7 py-3.5 bg-violet-600 text-white font-semibold rounded-full hover:bg-violet-700 active:scale-95 transition-all duration-200 shadow-lg shadow-violet-200"
+                className="inline-flex items-center justify-center rounded-full bg-violet-600 px-7 py-3.5 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:bg-violet-700 active:scale-95"
               >
                 Get Started — Free
               </Link>
+
               <Link
                 href="#features"
-                className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-gray-600 font-medium rounded-full border border-gray-200 hover:border-gray-400 hover:text-gray-900 transition-all duration-200"
+                onClick={(e) => handleNavClick(e, "#features")}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-7 py-3.5 font-medium text-gray-600 transition-all duration-200 hover:border-gray-400 hover:text-gray-900"
               >
                 See how it works
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M5 12h14M12 5l7 7-7 7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </Link>
             </div>
           </div>
 
-          {/* Right: Illustration */}
           <div className="flex justify-center md:justify-end">
-            <div
-              id="hero-illustration"
-              className="relative w-full max-w-md"
-            >
-              {/* Mock portfolio card */}
-              <div className="relative bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden p-6">
-                {/* Mock browser bar */}
-                <div className="flex items-center gap-1.5 mb-5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                  <div className="ml-3 flex-1 bg-gray-100 rounded-full h-5 px-3 flex items-center">
-                    <span className="text-xs text-gray-400">linkora.id/carol</span>
+            <div ref={heroIllustrationRef} className="relative w-full max-w-md">
+              <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-2xl">
+                <div className="flex items-center gap-1.5 border-b border-gray-100 px-4 py-3">
+                  <div className="h-3 w-3 rounded-full bg-red-400" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-400" />
+                  <div className="h-3 w-3 rounded-full bg-green-400" />
+                  <div className="ml-3 flex h-8 flex-1 items-center overflow-hidden rounded-full bg-gray-100 px-3">
+                    <span className="truncate text-xs text-gray-500">
+                      linkora-eight-kappa.vercel.app/belhartrp
+                    </span>
                   </div>
                 </div>
-                {/* Mock portfolio content */}
-                <div className="flex items-start gap-4 mb-5">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-600 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">C</div>
-                  <div>
-                    <div className="font-bold text-gray-900 text-lg">Hello, I'm Carol!</div>
-                    <div className="text-sm text-gray-500 mt-0.5">UI/UX Designer · Jakarta</div>
-                    <div className="flex gap-2 mt-2">
-                      {["💼", "🐦", "💻"].map((e, i) => (
-                        <span key={i} className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-sm">{e}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                {/* Skills */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {["Figma", "React", "Branding", "Motion"].map((s) => (
-                    <span key={s} className="px-3 py-1 bg-violet-50 text-violet-700 text-xs font-medium rounded-full border border-violet-100">{s}</span>
-                  ))}
-                </div>
-                {/* Project cards */}
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { title: "Portfolio v3", color: "from-violet-500 to-purple-600" },
-                    { title: "Brand Kit", color: "from-pink-500 to-rose-500" },
-                  ].map((p) => (
-                    <div key={p.title} className={`rounded-xl bg-gradient-to-br ${p.color} p-3 text-white`}>
-                      <div className="text-xs font-semibold mb-1">{p.title}</div>
-                      <div className="h-8 bg-white/20 rounded-lg" />
-                    </div>
-                  ))}
+
+                <div className="relative h-[520px] w-full overflow-hidden bg-[#f7f3f1]">
+                  <iframe
+                    src={PUBLIC_PREVIEW_URL}
+                    title="Preview halaman publik Linkora"
+                    className="absolute left-0 top-0 h-[780px] w-full origin-top scale-[0.67] border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#f7f3f1] to-transparent" />
                 </div>
               </div>
-              {/* Floating badge */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-2 flex items-center gap-2">
-                <span className="text-green-500 text-lg">●</span>
-                <span className="text-xs font-semibold text-gray-700">Published!</span>
+
+              <div className="absolute -right-4 -top-4 rounded-2xl border border-gray-100 bg-white px-4 py-2 shadow-lg">
+                <span className="text-xs font-semibold text-gray-700">
+                  Live preview
+                </span>
               </div>
-              <div className="absolute -bottom-3 -left-4 bg-violet-600 text-white rounded-2xl shadow-lg px-4 py-2 text-xs font-semibold">
-                ✨ 2.4k views this week
-              </div>
+
+              <a
+                href={PUBLIC_PREVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute -bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-xl transition-all duration-200 hover:bg-black"
+              >
+                Open full preview
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    d="M7 17L17 7M9 7h8v8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── FEATURES ─── */}
-      <section id="features" className="py-24 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16" data-aos="fade-up">
-            <span className="text-sm font-semibold text-violet-600 uppercase tracking-widest">How it works</span>
-            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">Build your portfolio in 4 easy steps</h2>
-            <p className="mt-4 text-gray-500 max-w-xl mx-auto text-lg">Dari pilih template sampai portfolio online — semuanya bisa kamu lakukan dalam hitungan menit.</p>
+      <section
+        id="features"
+        className="bg-gray-50 px-6 py-24 [scroll-margin-top:96px]"
+      >
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-16 text-center" data-aos="fade-up">
+            <span className="text-sm font-semibold uppercase tracking-widest text-violet-600">
+              How it works
+            </span>
+            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">
+              Workflow Linkora dalam 4 langkah
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg text-gray-500">
+              Alur yang sederhana untuk membuat halaman publikmu lebih rapi,
+              lebih konsisten, dan lebih mudah dibagikan.
+            </p>
           </div>
 
           <div className="space-y-28">
             {FEATURES.map((f, i) => (
               <div
                 key={f.title}
-                className={`grid md:grid-cols-2 gap-12 items-center ${f.img === "left" ? "md:flex-row-reverse" : ""}`}
+                className="grid items-center gap-12 md:grid-cols-2"
                 data-aos={f.img === "right" ? "fade-right" : "fade-left"}
                 data-aos-delay="100"
+                data-aos-once="false"
+                data-aos-mirror="true"
               >
-                {/* Text side */}
                 <div className={f.img === "left" ? "md:order-2" : ""}>
-                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-violet-600 bg-violet-50 border border-violet-100 px-4 py-1.5 rounded-full mb-4">
+                  <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-100 bg-violet-50 px-4 py-1.5 text-sm font-semibold text-violet-600">
                     <span className="text-base">{f.icon}</span>
                     Step {i + 1}
                   </div>
-                  <h3 className="text-3xl font-extrabold text-gray-900 mb-4">{f.title}</h3>
-                  <p className="text-lg text-gray-500 leading-relaxed max-w-md">{f.desc}</p>
-                  {f.cta && (
-                    <Link
-                      href={f.ctaHref || "#"}
-                      className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white text-sm font-semibold rounded-full hover:bg-violet-600 transition-all duration-200"
-                    >
-                      {f.cta}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </Link>
-                  )}
+                  <h3 className="mb-4 text-3xl font-extrabold text-gray-900">
+                    {f.title}
+                  </h3>
+                  <p className="max-w-md text-lg leading-relaxed text-gray-500">
+                    {f.desc}
+                  </p>
                 </div>
 
-                {/* Illustration side */}
-                <div className={`flex justify-center ${f.img === "left" ? "md:order-1" : ""}`}>
+                <div
+                  className={`flex justify-center ${
+                    f.img === "left" ? "md:order-1" : ""
+                  }`}
+                >
                   <FeatureIllustration type={f.illustrationKey} index={i} />
                 </div>
               </div>
@@ -411,43 +511,103 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── TEMPLATES ─── */}
-      <section id="templates" className="py-24 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14" data-aos="fade-up">
-            <span className="text-sm font-semibold text-violet-600 uppercase tracking-widest">Templates</span>
-            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">Pick your perfect template</h2>
-            <p className="mt-4 text-gray-500 max-w-xl mx-auto text-lg">Setiap template dirancang khusus dan dapat dikustomisasi sepenuhnya.</p>
+      <section
+        id="templates"
+        className="bg-white px-6 py-24 [scroll-margin-top:96px]"
+      >
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center" data-aos="fade-up">
+            <span className="text-sm font-semibold uppercase tracking-widest text-violet-600">
+              Template
+            </span>
+            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">
+              Template yang tersedia saat ini
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-500">
+              Saat ini Linkora berfokus pada satu template Bio Link, dengan
+              pengalaman edit dan publish yang dibuat tetap sederhana, jelas,
+              dan siap dikembangkan.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {TEMPLATES.map((t, i) => (
+          <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
+            {TEMPLATES.map((t) => (
               <div
                 key={t.name}
-                className="group relative rounded-2xl overflow-hidden cursor-pointer border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                className="group relative overflow-hidden rounded-[28px] border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                 data-aos="fade-up"
-                data-aos-delay={i * 80}
+                data-aos-once="false"
+                data-aos-mirror="true"
               >
-                <div className={`h-48 bg-gradient-to-br ${t.color} relative`}>
-                  {/* Mock content in template card */}
-                  <div className="absolute inset-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20 flex flex-col justify-end p-4">
-                    <div className="w-8 h-8 rounded-full bg-white/30 mb-2" />
-                    <div className="w-24 h-2.5 bg-white/60 rounded mb-1" />
-                    <div className="w-16 h-2 bg-white/30 rounded" />
-                  </div>
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-violet-600/0 group-hover:bg-violet-600/20 transition-all duration-300 flex items-center justify-center">
-                    <span className="opacity-0 group-hover:opacity-100 bg-white text-violet-700 font-semibold text-sm px-4 py-2 rounded-full shadow-lg transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                      Preview Template
-                    </span>
+                <div
+                  className={`relative aspect-[4/3] bg-gradient-to-br ${t.color} p-5`}
+                >
+                  <div className="h-full rounded-[28px] border border-white/50 bg-white/50 p-4 backdrop-blur-sm">
+                    <div className="relative h-full w-full overflow-hidden rounded-[22px] shadow-sm">
+                      <Image
+                        src={t.image}
+                        alt={`${t.name} preview`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="p-4 bg-white flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-gray-900 text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{t.tag}</div>
+
+                <div className="flex flex-col gap-5 bg-white p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-base font-semibold text-gray-900">
+                        {t.name}
+                      </div>
+                      <div className="mt-1 text-sm text-gray-400">{t.tag}</div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <span className="rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-600">
+                        Available now
+                      </span>
+                      <a
+                        href={t.previewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-violet-200 hover:text-violet-700"
+                      >
+                        Preview asli
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path
+                            d="M7 17L17 7M9 7h8v8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </a>
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-100 px-2.5 py-1 rounded-full">Free</span>
+
+                  <div>
+                    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                      Sections
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {t.sections.map((section) => (
+                        <span
+                          key={section}
+                          className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600"
+                        >
+                          {section}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -456,57 +616,62 @@ export default function LandingPage() {
           <div className="mt-12 text-center" data-aos="fade-up">
             <Link
               href="/auth/sign-up"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-violet-600 text-white font-semibold rounded-full hover:bg-violet-700 transition-all duration-200 shadow-lg shadow-violet-100"
+              className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-8 py-4 font-semibold text-white shadow-lg shadow-violet-100 transition-all duration-200 hover:bg-violet-700"
             >
               Mulai Gratis Sekarang
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path
+                  d="M5 12h14M12 5l7 7-7 7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── STATS BANNER ─── */}
-      <section className="py-16 px-6 bg-violet-600 text-white" data-aos="fade-up">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { num: "10k+", label: "Portfolio dibuat" },
-            { num: "50+", label: "Template tersedia" },
-            { num: "98%", label: "User puas" },
-            { num: "<5min", label: "Waktu setup" },
-          ].map((s) => (
-            <div key={s.label}>
-              <div className="text-4xl font-extrabold mb-1">{s.num}</div>
-              <div className="text-violet-200 text-sm">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── FAQ ─── */}
-      <section id="faq" className="py-24 px-6 bg-white">
-        <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-14" data-aos="fade-up">
-            <span className="text-sm font-semibold text-violet-600 uppercase tracking-widest">FAQ</span>
-            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">Pertanyaan yang sering ditanya</h2>
-            <p className="mt-4 text-gray-500 text-lg">Masih ada yang belum jelas? Cek dulu di sini.</p>
+      <section id="faq" className="bg-white px-6 py-24 [scroll-margin-top:96px]">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-14 text-center" data-aos="fade-up">
+            <span className="text-sm font-semibold uppercase tracking-widest text-violet-600">
+              FAQ
+            </span>
+            <h2 className="mt-3 text-4xl font-extrabold text-gray-900">
+              Pertanyaan yang sering ditanya
+            </h2>
+            <p className="mt-4 text-lg text-gray-500">
+              Ringkas, jelas, dan sesuai dengan fitur yang tersedia sekarang.
+            </p>
           </div>
 
           <div className="space-y-3" data-aos="fade-up" data-aos-delay="100">
             {FAQS.map((faq, i) => (
               <div
                 key={i}
-                className={`border rounded-2xl overflow-hidden transition-all duration-200 ${
-                  openFaq === i ? "border-violet-200 shadow-md shadow-violet-50" : "border-gray-100 hover:border-gray-200"
+                className={`overflow-hidden rounded-2xl border transition-all duration-200 ${
+                  openFaq === i
+                    ? "border-violet-200 shadow-md shadow-violet-50"
+                    : "border-gray-100 hover:border-gray-200"
                 }`}
               >
                 <button
-                  className="w-full flex items-center justify-between px-6 py-5 text-left"
+                  className="flex w-full items-center justify-between px-6 py-5 text-left"
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   aria-expanded={openFaq === i}
                 >
-                  <span className={`font-semibold text-base transition-colors ${openFaq === i ? "text-violet-600" : "text-gray-800"}`}>
+                  <span
+                    className={`text-base font-semibold transition-colors ${
+                      openFaq === i ? "text-violet-600" : "text-gray-800"
+                    }`}
+                  >
                     {faq.q}
                   </span>
                   <svg
@@ -516,19 +681,27 @@ export default function LandingPage() {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
-                    className={`flex-shrink-0 ml-4 transition-transform duration-300 ${
-                      openFaq === i ? "rotate-180 text-violet-600" : "text-gray-400"
+                    className={`ml-4 flex-shrink-0 transition-transform duration-300 ${
+                      openFaq === i
+                        ? "rotate-180 text-violet-600"
+                        : "text-gray-400"
                     }`}
                   >
-                    <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M6 9l6 6 6-6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                 </button>
                 <div
-                  className={`transition-all duration-300 ease-out overflow-hidden ${
+                  className={`overflow-hidden transition-all duration-300 ease-out ${
                     openFaq === i ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
                   }`}
                 >
-                  <p className="px-6 pb-5 text-gray-500 text-base leading-relaxed">{faq.a}</p>
+                  <p className="px-6 pb-5 text-base leading-relaxed text-gray-500">
+                    {faq.a}
+                  </p>
                 </div>
               </div>
             ))}
@@ -536,70 +709,111 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── CTA BANNER ─── */}
-      <section className="py-20 px-6 bg-gray-950 text-white" data-aos="fade-up">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-extrabold mb-5">
-            Portfolio kamu hanya <span className="text-violet-400">5 menit</span> lagi
+      <section className="bg-gray-950 px-6 py-20 text-white" data-aos="fade-up">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="mb-5 text-4xl font-extrabold sm:text-5xl">
+            Satu halaman publik untuk{" "}
+            <span className="text-violet-400">semua link pentingmu</span>
           </h2>
-          <p className="text-gray-400 text-lg mb-10">Daftar gratis, pilih template favorit, dan publish. Sesederhana itu.</p>
+          <p className="mb-10 text-lg text-gray-400">
+            Mulai dari template yang tersedia sekarang, atur identitasmu, lalu
+            bagikan URL publikmu sendiri dengan lebih rapi.
+          </p>
           <Link
             href="/auth/sign-up"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-violet-600 text-white font-semibold rounded-full hover:bg-violet-500 transition-all duration-200 text-lg shadow-2xl shadow-violet-900/30"
+            className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-8 py-4 text-lg font-semibold text-white shadow-2xl shadow-violet-900/30 transition-all duration-200 hover:bg-violet-500"
           >
             Mulai Sekarang — Gratis
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path
+                d="M5 12h14M12 5l7 7-7 7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </Link>
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer className="bg-gray-950 border-t border-white/5 text-gray-400 py-14 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
-            {/* Brand */}
+      <footer className="border-t border-white/5 bg-gray-950 px-6 py-14 text-gray-400">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 grid grid-cols-1 gap-10 md:grid-cols-4">
             <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="mb-4 flex items-center gap-2">
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
                   <rect width="28" height="28" rx="7" fill="#7C3AED" />
-                  <path d="M8 14h4m4 0h4M14 8v4m0 4v4" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                  <path
+                    d="M8 14h4m4 0h4M14 8v4m0 4v4"
+                    stroke="white"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
                 </svg>
-                <span className="text-white text-xl font-bold">linkora</span>
+                <span className="text-xl font-bold text-white">linkora</span>
               </div>
-              <p className="text-sm leading-relaxed max-w-xs">
-                Platform portfolio online untuk developer, designer, student, dan creator. Buat, customise, dan publish dalam hitungan menit.
+              <p className="max-w-xs text-sm leading-relaxed">
+                Linkora membantu kamu membuat halaman Bio Link yang rapi,
+                sederhana, dan mudah dibagikan.
               </p>
             </div>
 
-            {/* Links */}
             <div>
-              <div className="text-white font-semibold text-sm mb-4">Produk</div>
+              <div className="mb-4 text-sm font-semibold text-white">Produk</div>
               <ul className="space-y-2 text-sm">
-                {["Features", "Templates", "Pricing", "Changelog"].map((l) => (
-                  <li key={l}><a href="#" className="hover:text-white transition-colors">{l}</a></li>
-                ))}
+                <li>
+                  <a href="#features" className="transition-colors hover:text-white">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#templates" className="transition-colors hover:text-white">
+                    Template
+                  </a>
+                </li>
+                <li>
+                  <a href="#faq" className="transition-colors hover:text-white">
+                    FAQ
+                  </a>
+                </li>
               </ul>
             </div>
 
             <div>
-              <div className="text-white font-semibold text-sm mb-4">Dukungan</div>
+              <div className="mb-4 text-sm font-semibold text-white">Akses</div>
               <ul className="space-y-2 text-sm">
-                {["FAQ", "Dokumentasi", "Kontak", "Status"].map((l) => (
-                  <li key={l}><a href="#" className="hover:text-white transition-colors">{l}</a></li>
-                ))}
+                <li>
+                  <Link href="/auth/login" className="transition-colors hover:text-white">
+                    Login
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/auth/sign-up" className="transition-colors hover:text-white">
+                    Daftar
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/dashboard" className="transition-colors hover:text-white">
+                    Dashboard
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-white/5 pt-6 text-xs text-gray-600 sm:flex-row">
             <span>© {new Date().getFullYear()} Linkora. All rights reserved.</span>
             <span>
-              Created with{" "}
-              <span className="text-violet-400">♥</span>
-              {" "}by{" "}
-              <span className="text-gray-400 font-semibold">Belhart Rajesky Pasaribu</span>
+              Created with <span className="text-violet-400">♥</span> by{" "}
+              <span className="font-semibold text-gray-400">
+                Belhart Rajesky Pasaribu
+              </span>
             </span>
           </div>
         </div>
@@ -608,102 +822,136 @@ export default function LandingPage() {
   );
 }
 
-/* ─── Feature Illustration Component ─── */
-function FeatureIllustration({ type, index }: { type: string; index: number }) {
+function FeatureIllustration({
+  type,
+  index,
+}: {
+  type: string;
+  index: number;
+}) {
   const colors = [
-    { bg: "from-violet-50 to-purple-100", accent: "bg-violet-500", light: "bg-violet-100", border: "border-violet-200" },
-    { bg: "from-blue-50 to-cyan-100", accent: "bg-blue-500", light: "bg-blue-100", border: "border-blue-200" },
-    { bg: "from-rose-50 to-pink-100", accent: "bg-rose-500", light: "bg-rose-100", border: "border-rose-200" },
-    { bg: "from-amber-50 to-orange-100", accent: "bg-amber-500", light: "bg-amber-100", border: "border-amber-200" },
+    {
+      bg: "from-violet-50 to-purple-100",
+      accent: "bg-violet-500",
+      border: "border-violet-200",
+    },
+    {
+      bg: "from-blue-50 to-cyan-100",
+      accent: "bg-blue-500",
+      border: "border-blue-200",
+    },
+    {
+      bg: "from-rose-50 to-pink-100",
+      accent: "bg-rose-500",
+      border: "border-rose-200",
+    },
+    {
+      bg: "from-amber-50 to-orange-100",
+      accent: "bg-amber-500",
+      border: "border-amber-200",
+    },
   ];
+
   const c = colors[index % colors.length];
 
   const illustrations: Record<string, React.ReactNode> = {
     template: (
-      <div className={`w-full max-w-sm bg-gradient-to-br ${c.bg} rounded-3xl p-8 relative overflow-hidden border ${c.border}`}>
-        <div className="grid grid-cols-2 gap-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className={`rounded-2xl ${i === 0 ? c.accent : "bg-white"} h-28 shadow-sm flex flex-col justify-end p-3`}>
-              <div className={`h-2 rounded ${i === 0 ? "bg-white/60" : c.light} w-3/4 mb-1`} />
-              <div className={`h-1.5 rounded ${i === 0 ? "bg-white/40" : "bg-gray-100"} w-1/2`} />
+      <div
+        className={`w-full max-w-sm rounded-3xl border bg-gradient-to-br p-8 ${c.bg} ${c.border}`}
+      >
+        <div className="grid gap-3 rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="mb-2 h-3 w-28 rounded-full bg-gray-300" />
+            <div className="h-2.5 w-20 rounded-full bg-gray-200" />
+          </div>
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-4">
+            <div className="mb-2 h-3 w-24 rounded-full bg-gray-300" />
+            <div className="h-2.5 w-16 rounded-full bg-gray-200" />
+          </div>
+        </div>
+      </div>
+    ),
+    profile: (
+      <div
+        className={`w-full max-w-sm rounded-3xl border bg-gradient-to-br p-8 ${c.bg} ${c.border}`}
+      >
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-4">
+            <div className={`h-14 w-14 rounded-2xl ${c.accent}`} />
+            <div className="flex-1">
+              <div className="mb-2 h-3 w-32 rounded-full bg-gray-200" />
+              <div className="h-2.5 w-20 rounded-full bg-gray-100" />
             </div>
-          ))}
-        </div>
-        <div className={`absolute top-3 right-3 text-xs font-semibold ${c.accent} text-white px-3 py-1 rounded-full`}>50+ templates</div>
-      </div>
-    ),
-    customize: (
-      <div className={`w-full max-w-sm bg-gradient-to-br ${c.bg} rounded-3xl p-8 border ${c.border}`}>
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Customize</div>
-          {/* Color picker */}
-          <div className="flex gap-2 mb-4">
-            {["#7C3AED","#2563EB","#DC2626","#059669","#D97706"].map((hex) => (
-              <div key={hex} className="w-7 h-7 rounded-full border-2 border-white shadow cursor-pointer hover:scale-110 transition-transform" style={{background: hex}} />
-            ))}
           </div>
-          {/* Font selector mock */}
-          <div className="rounded-lg border border-gray-100 p-2.5 text-sm text-gray-500 mb-3 flex justify-between">
-            <span>Satoshi Regular</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
-          </div>
-          {/* Layout toggle */}
-          <div className="flex gap-2">
-            {["Grid","List","Card"].map((l, i) => (
-              <div key={l} className={`flex-1 text-center text-xs py-2 rounded-lg font-medium ${i === 0 ? `${c.accent} text-white` : "bg-gray-50 text-gray-500"}`}>{l}</div>
-            ))}
-          </div>
+          <div className="mb-2 h-2.5 w-full rounded-full bg-gray-100" />
+          <div className="mb-2 h-2.5 w-4/5 rounded-full bg-gray-100" />
+          <div className="h-2.5 w-2/3 rounded-full bg-gray-100" />
         </div>
       </div>
     ),
-    content: (
-      <div className={`w-full max-w-sm bg-gradient-to-br ${c.bg} rounded-3xl p-8 border ${c.border}`}>
-        <div className="bg-white rounded-2xl p-5 shadow-sm space-y-3">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Your Content</div>
-          {[
-            { label: "Projects", icon: "💼", count: "12 items" },
-            { label: "Skills", icon: "⚡", count: "8 added" },
-            { label: "Experience", icon: "📋", count: "3 roles" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 cursor-pointer group">
-              <span className="text-xl">{item.icon}</span>
-              <div className="flex-1">
-                <div className="font-medium text-sm text-gray-800">{item.label}</div>
-                <div className="text-xs text-gray-400">{item.count}</div>
+    links: (
+      <div
+        className={`w-full max-w-sm rounded-3xl border bg-gradient-to-br p-8 ${c.bg} ${c.border}`}
+      >
+        <div className="space-y-3 rounded-2xl bg-white p-5 shadow-sm">
+          {["Instagram", "TikTok", "GitHub"].map((item, i) => (
+            <div
+              key={item}
+              className={`flex items-center justify-between rounded-2xl px-4 py-4 ${
+                i === 0 ? "border border-gray-800 bg-[#f9edef]" : "bg-gray-50"
+              }`}
+            >
+              <div>
+                <div className="text-sm font-semibold text-gray-800">{item}</div>
+                <div className="mt-1 text-xs text-gray-400">Tap untuk buka</div>
               </div>
-              <div className={`w-2 h-2 rounded-full ${c.accent} opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className="h-9 w-9 rounded-full bg-white shadow-sm" />
             </div>
           ))}
-          <div className={`w-full py-2.5 rounded-xl text-xs font-semibold text-white text-center ${c.accent} cursor-pointer`}>+ Add Section</div>
         </div>
       </div>
     ),
     publish: (
-      <div className={`w-full max-w-sm bg-gradient-to-br ${c.bg} rounded-3xl p-8 border ${c.border} relative`}>
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-xl ${c.accent} flex items-center justify-center text-white text-lg`}>🚀</div>
+      <div
+        className={`relative w-full max-w-sm rounded-3xl border bg-gradient-to-br p-8 ${c.bg} ${c.border}`}
+      >
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-3">
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg text-white ${c.accent}`}
+            >
+              🚀
+            </div>
             <div>
-              <div className="font-bold text-sm text-gray-900">Portfolio Live!</div>
-              <div className="text-xs text-gray-400">linkora.id/yourname</div>
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-xl p-3 mb-3">
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              linkora.id/yourname
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {[{ v: "247", l: "Views" }, { v: "14", l: "Clicks" }, { v: "3", l: "Offers" }].map((s) => (
-              <div key={s.l} className="bg-gray-50 rounded-lg py-2">
-                <div className="font-bold text-sm text-gray-900">{s.v}</div>
-                <div className="text-xs text-gray-400">{s.l}</div>
+              <div className="text-sm font-bold text-gray-900">
+                Halaman publik siap
               </div>
-            ))}
+              <div className="text-xs text-gray-400">
+                /belhartrp
+              </div>
+            </div>
+          </div>
+          <div className="mb-3 rounded-xl bg-gray-50 p-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+              URL siap disalin dan dibagikan
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="rounded-lg bg-gray-50 px-3 py-3 text-sm text-gray-600">
+              Template aktif: Bio Link
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-3 text-sm text-gray-600">
+              Profil sudah diisi
+            </div>
+            <div className="rounded-lg bg-gray-50 px-3 py-3 text-sm text-gray-600">
+              Link siap dipublikasikan
+            </div>
           </div>
         </div>
-        <div className="absolute -top-3 -right-3 bg-green-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">✓ Live</div>
+        <div className="absolute -right-3 -top-3 rounded-full bg-green-500 px-3 py-1.5 text-xs font-bold text-white shadow-lg">
+          ✓ Ready
+        </div>
       </div>
     ),
   };

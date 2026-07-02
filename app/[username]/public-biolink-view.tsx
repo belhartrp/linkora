@@ -29,9 +29,43 @@ export default function PublicBiolinkView({
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
 
+  const initial =
+    displayName?.trim()?.charAt(0)?.toUpperCase() ||
+    username?.trim()?.charAt(0)?.toUpperCase() ||
+    "L";
+
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
+      const cleanups: Array<() => void> = [];
+
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      if (prefersReducedMotion) {
+        gsap.set(
+          [
+            ".js-page-shell",
+            ".js-avatar",
+            ".js-name",
+            ".js-handle",
+            ".js-divider",
+            ".js-bio",
+            ".js-link-card",
+            ".js-footer",
+          ],
+          {
+            opacity: 1,
+            clearProps: "all",
+          }
+        );
+
+        return () => {
+          mm.revert();
+          cleanups.forEach((fn) => fn());
+        };
+      }
 
       gsap.set(
         [
@@ -177,7 +211,10 @@ export default function PublicBiolinkView({
       });
 
       mm.add("(min-width: 768px)", () => {
-        const shell = rootRef.current?.querySelector(".js-page-shell") as HTMLElement | null;
+        const shell = rootRef.current?.querySelector(
+          ".js-page-shell"
+        ) as HTMLElement | null;
+
         if (!shell) return;
 
         const onMove = (e: MouseEvent) => {
@@ -216,10 +253,10 @@ export default function PublicBiolinkView({
         shell.addEventListener("mousemove", onMove);
         shell.addEventListener("mouseleave", onLeave);
 
-        return () => {
+        cleanups.push(() => {
           shell.removeEventListener("mousemove", onMove);
           shell.removeEventListener("mouseleave", onLeave);
-        };
+        });
       });
 
       const cards = gsap.utils.toArray<HTMLElement>(".js-link-card");
@@ -298,13 +335,18 @@ export default function PublicBiolinkView({
         card.addEventListener("mouseenter", enter);
         card.addEventListener("mouseleave", leave);
 
-        return () => {
+        cleanups.push(() => {
           card.removeEventListener("mouseenter", enter);
           card.removeEventListener("mouseleave", leave);
-        };
+        });
       });
+
+      return () => {
+        mm.revert();
+        cleanups.forEach((fn) => fn());
+      };
     },
-    { scope: rootRef }
+    { scope: rootRef, dependencies: [links.length, avatarUrl, displayName, username] }
   );
 
   return (
@@ -405,7 +447,7 @@ export default function PublicBiolinkView({
                       <div className="js-avatar relative h-28 w-28 sm:h-32 sm:w-32">
                         <div className="js-avatar-ring mesh-gradient absolute inset-0 rounded-full p-[4px]" />
                         <div className="absolute inset-[4px] flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#f6d7dc,#efe7ff)] text-4xl font-bold uppercase text-[#6a5252] shadow-[0_18px_44px_rgba(127,93,93,0.14)]">
-                          {displayName.charAt(0) || username.charAt(0) || "L"}
+                          {initial}
                         </div>
                       </div>
                     )}
