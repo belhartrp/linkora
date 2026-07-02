@@ -38,7 +38,7 @@ async function ensureProfile(userId: string, email: string) {
 }
 
 export async function login(formData: FormData) {
-  const email = String(formData.get("email") || "");
+  const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
 
   const supabase = await createClient();
@@ -53,6 +53,5 @@ export async function login(formData: FormData) {
   }
 
   await ensureProfile(data.user.id, data.user.email || email);
-
   redirect("/dashboard");
 }

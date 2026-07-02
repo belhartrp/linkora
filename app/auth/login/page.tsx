@@ -1,89 +1,123 @@
 import Link from "next/link";
 import { login } from "./actions";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; message?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params?.error;
+  const message = params?.message;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black px-6 text-white">
-      <Link
-        href="/"
-        className="absolute left-6 top-6 text-sm text-zinc-500 transition hover:text-white"
-      >
-        ← Kembali ke beranda
-      </Link>
+    <>
+      <style>{`
+        @keyframes authFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+      `}</style>
 
-      <div className="w-full max-w-md rounded-3xl border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex w-fit items-center gap-2">
-            <svg width="30" height="30" viewBox="0 0 28 28" fill="none" aria-label="Linkora logo">
-              <rect width="28" height="28" rx="8" fill="white" />
-              <path
-                d="M8 14h4m4 0h4M14 8v4m0 4v4"
-                stroke="black"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-xl font-bold">Linkora</span>
+      <div className="w-full max-w-md [animation:authFloat_5.5s_ease-in-out_infinite]">
+        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
+          <div className="border-b border-slate-100 px-6 py-5">
+            <div className="mb-4 flex items-center justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-600 text-xl font-bold text-white shadow-lg shadow-violet-200">
+                L
+              </div>
+            </div>
+
+            <div className="text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-violet-600">
+                Login
+              </p>
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">
+                Masuk ke Linkora
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Kelola halaman publik dan semua link pentingmu dari satu dashboard.
+              </p>
+            </div>
           </div>
 
-          <h1 className="mt-6 text-3xl font-bold">Masuk ke akun kamu</h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            Belum punya akun?{" "}
-            <Link
-              href="/auth/sign-up"
-              className="text-white underline underline-offset-4 hover:text-zinc-300"
-            >
-              Daftar gratis
-            </Link>
-          </p>
-        </div>
+          <div className="p-6 sm:p-7">
+            {error ? (
+              <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {error}
+              </div>
+            ) : null}
 
-        <form className="space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-2 block text-sm font-medium text-zinc-300">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="kamu@email.com"
-              className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-600 outline-none transition focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
-            />
+            {message ? (
+              <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                {message}
+              </div>
+            ) : null}
+
+            <form action={login} className="space-y-5">
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-slate-700"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="kamu@email.com"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                />
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-slate-700"
+                  >
+                    Password
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm font-semibold text-violet-600 transition hover:text-violet-700"
+                  >
+                    Lupa password?
+                  </Link>
+                </div>
+
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:bg-white focus:ring-4 focus:ring-violet-100"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-violet-600 px-7 font-semibold text-white shadow-lg shadow-violet-200 transition-all duration-200 hover:bg-violet-700 active:scale-[0.99]"
+              >
+                Masuk
+              </button>
+            </form>
+
+            <div className="mt-6 text-center text-sm text-slate-500">
+              Belum punya akun?{" "}
+              <Link
+                href="/auth/sign-up"
+                className="font-semibold text-violet-600 transition hover:text-violet-700"
+              >
+                Daftar
+              </Link>
+            </div>
           </div>
-
-          <div>
-            <label htmlFor="password" className="mb-2 block text-sm font-medium text-zinc-300">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              className="w-full rounded-2xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-white placeholder-zinc-600 outline-none transition focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600"
-            />
-          </div>
-
-          <button
-            formAction={login}
-            className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-black transition hover:opacity-90"
-          >
-            Masuk
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <Link
-            href="/auth/forgot-password"
-            className="text-sm text-zinc-500 transition hover:text-white"
-          >
-            Lupa password?
-          </Link>
         </div>
       </div>
-    </div>
+    </>
   );
 }

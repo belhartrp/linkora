@@ -10,7 +10,7 @@ export async function signUp(formData: FormData) {
   const password = String(formData.get("password") || "").trim();
 
   if (!email || !password) {
-    redirect("/auth/error?error=Email dan password wajib diisi");
+    redirect("/auth/login?error=Email dan password wajib diisi");
   }
 
   const { data, error } = await supabase.auth.signUp({
@@ -24,11 +24,11 @@ export async function signUp(formData: FormData) {
         ? "Terlalu banyak percobaan. Coba lagi beberapa menit lagi."
         : error.message;
 
-    redirect(`/auth/error?error=${encodeURIComponent(message)}`);
+    redirect(`/auth/login?error=${encodeURIComponent(message)}`);
   }
 
-  if (!data.session) {
-    redirect("/auth/error?error=Signup berhasil tapi session tidak dibuat");
+  if (!data.user) {
+    redirect("/auth/login?error=Signup gagal");
   }
 
   redirect("/dashboard");
