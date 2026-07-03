@@ -13,189 +13,179 @@ export default async function DashboardPage() {
     redirect("/auth/login");
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
-    .select("id, email, username, active_template")
+    .select("username, active_template")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profileError || !profile) {
-    redirect("/auth/login");
-  }
+  const { data: biolinkProfile } = await supabase
+    .from("biolink_profiles")
+    .select("username")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
-  let displayName = "";
-  let bio = "";
-  let activeLinksCount = 0;
+  const inferredTemplate =
+    profile?.active_template || (biolinkProfile ? "biolink" : null);
 
-  if (profile.active_template === "biolink") {
-    const { data: biolinkProfile } = await supabase
-      .from("biolink_profiles")
-      .select("display_name, bio")
-      .eq("user_id", profile.id)
-      .maybeSingle();
+  const username =
+    profile?.username?.trim() || biolinkProfile?.username?.trim() || null;
 
-    displayName = biolinkProfile?.display_name ?? "";
-    bio = biolinkProfile?.bio ?? "";
+  const hasTemplate = Boolean(inferredTemplate);
 
-    const { count } = await supabase
-      .from("biolink_links")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", profile.id)
-      .eq("is_active", true);
+  const activeTemplateLabel =
+    inferredTemplate === "biolink" ? "Bio Link" : "Belum dipilih";
 
-    activeLinksCount = count ?? 0;
-  }
-
-  const publicUrl = profile.username
-    ? `/${profile.username}`
-    : null;
-
-  const contentStatus =
-    profile.active_template === "biolink"
-      ? displayName || bio || activeLinksCount > 0
-        ? "Sudah ada isi"
-        : "Masih kosong"
-      : "Belum tersedia";
+  const welcomeName = username || user.email?.split("@")[0] || "Creator";
 
   return (
-    <main className="min-h-screen bg-black px-6 py-12 text-white">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="mb-2 text-sm uppercase tracking-[0.2em] text-zinc-500">
-              Dashboard
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-              Selamat datang di Linkora
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400 md:text-base">
-              Kelola template aktif, lanjut edit halaman publikmu, dan pantau status konten dari satu tempat.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/editor"
-              className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-            >
-              Lanjut edit
-            </Link>
-            <Link
-              href="/dashboard/templates"
-              className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-            >
-              Pilih template
-            </Link>
-          </div>
+    <main className="min-h-screen bg-[linear-gradient(180deg,#fcfcfe_0%,#f6f2ff_100%)] text-slate-950">
+      <div className="mx-auto max-w-5xl px-6 py-12 sm:px-8 lg:px-10 lg:py-16">
+        <div className="mb-10">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-violet-600">
+            Dashboard
+          </p>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl">
+            Selamat datang, {welcomeName}
+          </h1>
+          <p className="mt-3 max-w-xl text-base leading-7 text-slate-600">
+            {hasTemplate
+              ? "Template aktifmu sudah siap. Kamu bisa lanjut edit, melihat halaman publik, atau buka settings."
+              : "Kamu belum memilih template. Pilih dulu supaya halaman publikmu siap dipakai."}
+          </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm text-zinc-500">Template aktif</p>
-            <h2 className="mt-2 text-3xl font-bold">
-              {profile.active_template === "biolink"
-                ? "Bio Link"
-                : profile.active_template || "Belum dipilih"}
-            </h2>
+        {hasTemplate ? (
+          <section className="rounded-[28px] border border-slate-200/80 bg-white/90 p-7 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <rect
+                      x="4"
+                      y="4"
+                      width="16"
+                      height="16"
+                      rx="4"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M8 9h8M8 13h5"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
 
-            <p className="mt-3 max-w-xl text-zinc-400">
-              {profile.active_template === "biolink"
-                ? "Template sederhana untuk menampilkan avatar, bio singkat, dan kumpulan link utama kamu."
-                : "Pilih template yang ingin kamu pakai untuk mulai membangun halaman publik."}
-            </p>
+                <div>
+                  <p className="text-sm font-medium text-slate-500">
+                    Template aktif
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                    {activeTemplateLabel}
+                  </h2>
+                  {username ? (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Halaman publik:{" "}
+                      <span className="font-medium text-slate-700">
+                        /{username}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              </div>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/dashboard/editor"
-                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-              >
-                Edit konten
-              </Link>
-
-              <Link
-                href="/dashboard/publish"
-                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-              >
-                Halaman publish
-              </Link>
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm text-zinc-500">URL publik</p>
-            <h2 className="mt-2 text-xl font-semibold">
-              {publicUrl ? publicUrl : "Username belum tersedia"}
-            </h2>
-
-            <p className="mt-3 text-zinc-400">
-              {publicUrl
-                ? "Ini adalah alamat publik yang bisa kamu bagikan ke orang lain."
-                : "Atur username lebih dulu supaya halaman publik bisa diakses."}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              {publicUrl ? (
+              <div className="flex flex-wrap gap-3 sm:flex-col sm:items-stretch">
                 <Link
-                  href={publicUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+                  href="/dashboard/editor"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-violet-600 px-6 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(124,58,237,0.22)] transition hover:bg-violet-700"
                 >
-                  Lihat halaman publik
+                  Lanjut edit
                 </Link>
-              ) : null}
 
-              <Link
-                href="/dashboard/settings"
-                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-              >
-                Buka settings
-              </Link>
+                {username ? (
+                  <Link
+                    href={`/${username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+                  >
+                    Lihat halaman publik
+                  </Link>
+                ) : null}
+
+                <Link
+                  href="/dashboard/settings"
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-6 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+                >
+                  Settings
+                </Link>
+              </div>
             </div>
           </section>
-        </div>
-
-        <div className="mt-6 grid gap-6 md:grid-cols-3">
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm text-zinc-500">Status konten</p>
-            <h3 className="mt-2 text-2xl font-bold">{contentStatus}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Ringkasan sederhana untuk melihat apakah halaman publikmu sudah mulai terisi.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm text-zinc-500">Link aktif</p>
-            <h3 className="mt-2 text-2xl font-bold">{activeLinksCount}</h3>
-            <p className="mt-3 text-sm leading-6 text-zinc-400">
-              Jumlah link yang aktif dan ditampilkan di halaman publikmu saat ini.
-            </p>
-          </section>
-
-          <section className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="text-sm text-zinc-500">Aksi cepat</p>
-            <div className="mt-4 flex flex-col gap-3">
-              <Link
-                href="/dashboard/editor"
-                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+        ) : (
+          <section className="rounded-[28px] border border-dashed border-violet-200 bg-white/70 p-8 text-center shadow-[0_20px_60px_rgba(15,23,42,0.05)] backdrop-blur sm:p-10">
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
               >
-                Lanjut edit
-              </Link>
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+
+            <h2 className="text-2xl font-bold tracking-tight text-slate-950">
+              Belum ada template aktif
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-slate-600">
+              Pilih template dulu supaya kamu bisa mulai mengisi konten dan
+              halaman publikmu siap dibagikan.
+            </p>
+
+            <div className="mt-6">
               <Link
                 href="/dashboard/templates"
-                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
+                className="inline-flex h-12 items-center justify-center rounded-full bg-violet-600 px-7 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,58,237,0.22)] transition hover:bg-violet-700"
               >
-                Ganti template
-              </Link>
-              <Link
-                href="/dashboard/publish"
-                className="rounded-2xl border border-zinc-800 px-4 py-3 text-sm text-zinc-300 transition hover:border-zinc-700 hover:text-white"
-              >
-                Buka publish
+                Pilih template
               </Link>
             </div>
+
+            {username ? (
+              <p className="mt-6 text-xs text-slate-400">
+                Username publikmu:{" "}
+                <span className="font-medium text-slate-500">/{username}</span>
+              </p>
+            ) : (
+              <p className="mt-6 text-xs text-rose-500">
+                Kamu juga belum mengatur username. Atur dulu di{" "}
+                <Link
+                  href="/dashboard/settings"
+                  className="font-semibold underline underline-offset-2"
+                >
+                  settings
+                </Link>
+                .
+              </p>
+            )}
           </section>
-        </div>
+        )}
       </div>
     </main>
   );
